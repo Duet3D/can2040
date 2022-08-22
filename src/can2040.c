@@ -15,7 +15,6 @@
 #include "hardware/structs/pio.h" // pio0_hw
 #include "hardware/structs/resets.h" // RESETS_RESET_PIO0_BITS
 
-
 /****************************************************************
  * rp2040 and low-level helper functions
  ****************************************************************/
@@ -441,8 +440,11 @@ crc_bytes(uint32_t crc, uint32_t data, uint32_t num)
 {
     switch (num) {
     default: crc = crc_byte(crc, data >> 24);
+    // no break
     case 3:  crc = crc_byte(crc, data >> 16);
+    // no break
     case 2:  crc = crc_byte(crc, data >> 8);
+    // no break
     case 1:  crc = crc_byte(crc, data);
     }
     return crc;
@@ -955,14 +957,14 @@ data_state_update_start(struct can2040 *cd, uint32_t data)
     data_state_go_next(cd, MS_HEADER, 17);
 }
 
-// Handle reception of next 17 header bits
+// Handle reception of next 17 header bits which for CAN frame with short ID takes us up to and including the DLC bits
 static void
 data_state_update_header(struct can2040 *cd, uint32_t data)
 {
-    data |= cd->parse_msg.id << 17;
+    data |= cd->parse_msg.id << 17;							// or in the most significant ID bit
     if ((data & 0x60) == 0x60) {
         // Extended header
-        cd->parse_msg.id = data;
+        cd->parse_msg.id = data;							// this is now the first 11 bits of the ID field shifted left 7 bits
         data_state_go_next(cd, MS_EXT_HEADER, 20);
         return;
     }
